@@ -1,0 +1,36 @@
+# ============================================================
+#  Monitor de passagens — configuração
+#  Edite aqui e faça commit; a próxima execução já usa os novos valores.
+# ============================================================
+
+# Hora (horário de Brasília) a partir da qual o resumo diário é enviado.
+hora_resumo: 8
+
+# Origem usada quando a viagem não informa "origem".
+origem_padrao: [BSB]
+
+viagens:
+  # --- Datas fixas: informe "ida" e "volta" ---
+  - nome: "Brasília → São Paulo | 18 a 24/02/2027"
+    ativa: true
+    destino: [GRU, CGH, VCP]   # Guarulhos, Congonhas e Viracopos
+    ida: 2027-02-18
+    volta: 2027-02-24
+    preco_alvo: null           # defina o valor (R$) para receber alerta imediato
+
+  - nome: "Brasília → Rio | 18 a 24/02/2027"
+    ativa: true
+    destino: ["/m/06gmr"]      # "Rio de Janeiro" do Google (Galeão + Santos Dumont)
+    ida: 2027-02-18
+    volta: 2027-02-24
+    preco_alvo: null
+
+  # --- Mês inteiro: toda ida dentro do mês, volta = ida + (dias - 1) ---
+  # A volta pode cair no mês seguinte.
+  - nome: "Exemplo: Brasília → Rio | maio/2027, 10 dias"
+    ativa: false
+    destino: ["/m/06gmr"]
+    mes: 2027-05
+    dias: 10                   # dias corridos (ida dia 1 → volta dia 10); ou uma lista: [9, 10]
+    preco_alvo: 450
+    # ida_e_volta: false       # descomente para buscar só ida

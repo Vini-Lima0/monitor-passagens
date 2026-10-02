@@ -1,0 +1,64 @@
+name: Monitor de passagens
+
+on:
+  schedule:
+    # A cada 4 horas (horários em UTC = Brasília + 3h): 00h, 04h, 08h, 12h, 16h e 20h de Brasília.
+    # O GitHub pode atrasar alguns minutos as execuções agendadas.
+    - cron: "0 3,7,11,15,19,23 * * *"
+  workflow_dispatch:
+    inputs:
+      resumo:
+        description: "Enviar o resumo diário agora"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: monitor-passagens
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar dependências
+        run: |
+          pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+          sudo apt-get install -y xvfb
+
+      - name: Buscar passagens
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        # xvfb-run cria uma tela virtual: o navegador precisa abrir COM janela, porque
+        # sem janela o Google mostra preços mais altos.
+        run: xvfb-run -a --server-args="-screen 0 1920x1080x24" python monitor.py ${{ inputs.resumo && '--resumo' || '' }}
+
+      - name: Salvar histórico no repositório
+        if: always()
+        run: |
+          git config user.name "monitor-passagens"
+          git config user.email "monitor-passagens@users.noreply.github.com"
+          git add dados/estado.json dados/historico.csv 2>/dev/null || true
+          git diff --cached --quiet || git commit -m "dados: busca de $(date -u +'%Y-%m-%d %H:%M') UTC"
+          git pull --rebase --quiet && git push
+
+      - name: Guardar prints de erro
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: erros
+          path: dados/erros/
+          if-no-files-found: ignore
+          retention-days: 7
